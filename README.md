@@ -4,7 +4,7 @@
 
 Next Chapter is a personal job-search workspace that brings researched roles, resume fit, personal priorities and application progress into one place. Import a workbook, compare opportunities, record your next steps and follow your progress as it happens.
 
-**[Open Next Chapter](https://next-chapter-by-khiz.lovable.app/)** · **[Try the demo](https://next-chapter-by-khiz.lovable.app/?view=demo)** · **[Architecture](docs/architecture.md)**
+**[Open Next Chapter](https://next-chapter-by-khiz.lovable.app/)** · **[Try the demo](https://next-chapter-by-khiz.lovable.app/?view=demo)** · **[Architecture](architecture.md)**
 
 Built by [Khiz](https://github.com/Built-by-Khiz).
 
@@ -67,7 +67,7 @@ flowchart LR
 | Search and progress | Local query parsing, a custom SVG Sankey and accessible tables |
 | Scheduled backups | PostgreSQL functions invoked by `pg_cron` |
 
-See the [architecture document](docs/architecture.md) for component responsibilities, data flows and boundaries.
+See the [architecture document](architecture.md) for component responsibilities, data flows and boundaries.
 
 ## Design choices that matter
 
@@ -82,15 +82,15 @@ See the [architecture document](docs/architecture.md) for component responsibili
 
 Next Chapter is published and in early user testing. Initial live checks covered sign-in, separate account workspaces, importing a fictional dataset with scores, and a backup download/upload/restore round trip.
 
-Python validation tools and MLflow experiments are proposed next steps. They are documented in the [roadmap](docs/roadmap.md) and are not part of the current application runtime.
+Python validation tools and MLflow experiments are proposed next steps. They are documented in the [roadmap](roadmap.md) and are not part of the current application runtime.
 
 ## Documentation
 
 | Document | What it covers |
 | --- | --- |
-| [Product brief](docs/PRD.md) | Problem, intended users, user journeys and product decisions |
-| [Architecture](docs/architecture.md) | System diagram, components, data model and core flows |
-| [Research and import workflow](docs/import-and-ai-workflow.md) | External AI research, score meaning and workbook compatibility |
-| [Roadmap](docs/roadmap.md) | Current capabilities and proposed validation/evaluation work |
+| [Product brief](PRD.md) | Problem, intended users, user journeys and product decisions |
+| [Architecture](architecture.md) | System diagram, components, data model and core flows |
+| [Research and import workflow](import-and-ai-workflow.md) | External AI research, score meaning and workbook compatibility |
+| [Roadmap](roadmap.md) | Current capabilities and proposed validation/evaluation work |
 
 This is the public documentation repository for Next Chapter. The application runs on Lovable; its source code, deployment configuration and private workspace data are not included here.
