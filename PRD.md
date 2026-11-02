@@ -2,78 +2,95 @@
 
 ## Problem
 
-Job seekers collect opportunities faster than they can evaluate and act on them. Research may describe the role well, but personal fit, priorities, application status and follow-up context often live in different places. A refreshed spreadsheet can also overwrite personal work or imply that a researched role has already been applied to.
+Applicants collect opportunities faster than they can evaluate and act on them. Role research, personal priorities, application status, rejection emails and follow-up context often live in separate places. Updating a research spreadsheet can also erase personal decisions or make an old opportunity look new.
 
-Next Chapter connects research to a private, ongoing application workflow.
+Next Chapter is a private job application tracker that keeps research useful throughout the application process. Users bring their own research, record decisions, refresh information deliberately and retain control over changes to their workspace.
 
-## Intended users
+## Intended users and goals
 
-- Job seekers managing opportunities across companies and job boards.
-- People using spreadsheets or an AI assistant to research and rank potential roles.
-- Applicants who want an understandable record of their actions and a way to recover earlier work.
+The app serves individuals managing applications across companies and job boards, including people who use spreadsheets or an external AI assistant to prepare research. Shared recruiter pipelines and team collaboration are outside the current scope.
 
-The current product is organized around individual accounts. Shared recruiter pipelines and team collaboration are outside the current scope.
+The product aims to:
 
-## Product goals
-
-1. Help a user identify which role to consider next using their own evidence and priorities.
-2. Bring structured research into the tracker without losing personal application work.
-3. Make changes in application status visible without inventing historical activity.
-4. Give users control over imports, backups and restores.
-5. Let users choose the AI assistant they use for research.
+1. Make the next application decision easier with distinct resume-fit and priority scores.
+2. Refresh research without overwriting existing personal statuses, notes or dates.
+3. Reduce repeated work through quick status changes, multi-select updates and email review.
+4. Keep larger imports recoverable through saved progress and explicit confirmation.
+5. Show recorded progress without inventing earlier application stages.
+6. Keep the interface focused on the current task, with detail available when requested.
 
 ## Core user journeys
 
-| Journey | User outcome | Current behavior |
-| --- | --- | --- |
-| Explore | Understand the product before creating an account | A fictional demo runs in browser memory. |
-| Start a workspace | Save personal application records | Google or email/password sign-in opens an account-specific workspace. |
-| Add a role | Capture an opportunity quickly | Company and role are required; additional details are optional. |
-| Bring in research | Turn a workbook into tracked opportunities | Browser validation, preview, destination confirmation and batched import. |
-| Decide what comes next | Find suitable opportunities | Imported fit/priority scores, sortable headers, text/date/score search and status filtering. |
-| Track activity | Keep the current stage and follow-up context | Application editing plus a chart of recorded status observations. |
-| Recover work | Return to a saved state deliberately | Named backups, JSON download/upload, restore preview and a safety copy. |
+| Journey                         | User outcome                                                 | Implemented behavior                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Explore                         | Understand the product before creating an account            | A fictional demo runs in browser memory.                                                                                        |
+| Start or recover access         | Open a private workspace                                     | Google or email/password sign-in, plus email-based password recovery.                                                           |
+| Capture an opportunity          | Add a role without a workbook                                | Company and role are required; additional details are optional.                                                                 |
+| Bring in research               | Add new opportunities and refresh existing research          | A guided workbook import with browser validation, review, update choices, cleanup choices and confirmation.                     |
+| Decide what comes next          | Find and compare relevant opportunities                      | Imported fit/priority scores, sortable headers, supported text/date/score queries and status filtering.                         |
+| Update tracking                 | Record a decision with little interruption                   | Click a status badge, edit a card, or select multiple applications for a status update.                                         |
+| Process a rejection             | Connect an email to the right tracked role                   | A private forwarding address, suggested matches, explicit review and optional narrowly gated automatic rejection updates.       |
+| Prepare the next research round | Give an external assistant current tracking context          | Export all current applications as JSON, including stable source identities, current statuses, notes and research.              |
+| Recover or clear work           | Return to an earlier state or deliberately empty a workspace | Manual/automatic backups, JSON download/upload, restore preview, and a protected delete-all action with a required safety copy. |
 
 ## Three separate concepts
 
-| Concept | Question it answers | Examples |
-| --- | --- | --- |
-| Job availability | What is known about the posting? | Open, Unverified, Closed, Archived |
-| Application status | Where is the user in their own process? | Saved, Applied, Interviewing, Offer, Accepted, Rejected, Withdrawn |
-| Fit and priority | How does this opportunity compare under the user's rubric? | Resume fit 88/100; priority 91/100 |
+| Concept            | Question it answers                                       | Examples                                                                 |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Job availability   | What is known about the posting?                          | Open, Unverified, Closed, Archived                                       |
+| Application status | Where is the user in their own process?                   | Saved, Applied, Interviewing, Rejected, or a reason for declining a role |
+| Fit and priority   | How does the opportunity compare under the user's rubric? | Resume fit 88/100; priority 91/100                                       |
 
-None of these concepts is inferred from the others. A high-priority role may be unverified. An open role may still be Saved. Researching a role does not record an application submission.
+A high-priority role may be unverified. An open posting may still be Saved. Researching a role does not record an application submission. Scores come from imported research and are not probabilities of getting an offer.
+
+The selectable application statuses are **Saved, Applied, Interviewing, Offer, Accepted, Rejected, Withdrawn, Not interested in domain, Not interested in the company, Seniority too high**, and **Role no longer available**. Older **Not interested (reason not set)** records remain readable and can be preserved during editing; new choices capture a more specific reason.
+
+Choosing **Not interested in the company** asks whether the change applies only to the selected role or roles, or to all existing roles from the matching company or companies. The confirmation includes roles hidden by the current filter. Company matching ignores case and extra spaces; it does not infer subsidiaries or create a permanent rule for future imports.
 
 ## Interaction decisions
 
-### Compact cards with detail on demand
+### Put actions before explanations
 
-Company, role, location, dates and scores remain visible in the list. Notes appear when a card expands. The status badge sits beside compact icon actions. Shared score headers support sorting without repeating their labels in every card.
+Add application and Import workbook remain visible on the workspace. Email updates, Export applications and Backups sit in the `...` menu. Info icons beside headings expand background guidance inline when clicked, with keyboard support. They do not rely on hover tooltips.
 
-The list starts with 50 matching roles and progressively reveals another 50. Sorting and filtering apply to the complete loaded workspace before rows are revealed.
+Action-specific instructions, errors and destructive-action confirmations remain visible when needed. Notes stay inside expanded cards. The import screen defaults to file selection; a headline button switches to the separate AI workbook guide and **File Import** returns to the wizard.
 
-### Familiar search with predictable behavior
+### Keep list work in context
 
-The search box supports terms, quoted phrases, field filters, dates and numeric score comparisons. It interprets a defined query grammar locally. Multiple conditions narrow the result together; it does not promise to understand arbitrary conversation.
+Compact cards show company, role, location, dates, status and scores. Shared score headers sort the list. A superscript **NEW** marks applications created within the last seven days; editing a role or changing its research date does not make it new.
 
-### Progress on the workspace home screen
+The list initially reveals 50 matching roles and reveals another 50 on scroll. Filtering and sorting operate on the loaded workspace before cards are revealed. Existing-card edits preserve the current search, filter, sort, revealed rows and scroll position during that workspace visit. This is not a promise of persistence across browser reloads.
 
-The Sankey chart places recorded activity beside the application list. A starting observation describes what was known when tracking began. Later status changes create the recorded journey. When no changes exist, a current-status view remains useful.
+Users can select loaded cards or all matching records for a bulk status update. A thin progress bar appears along the top of an updating card. Successful status changes briefly highlight the status badge with a checkmark; other successful edits highlight the card. If an update removes a card from the active filter, a nearby receipt explains the result.
 
-### Review before importing or restoring
+### Show actual progress
 
-Users review workbook validation and the destination account before importing. Existing records are skipped by default. An explicit research-refresh option preserves existing personal fields.
+The home-screen Sankey uses recorded status observations. Applications without an actual status change flow directly to **Current status**, skipping historical columns. Applications with changes use only their needed history steps, and the final state appears once in Current status. Same-status writes do not add a transition.
 
-Restoring a backup is a separate action from uploading one. The preview compares record counts, explains the replacement and requires confirmation. A safety copy preserves the prior workspace.
+Initial observations do not recreate earlier stages. Ambiguous or incomplete histories remain explicit rather than being guessed. Exact-count tables support the visual chart.
 
-## Scope boundaries
+### Make imports deliberate and recoverable
 
-The current app tracks follow-up dates but does not deliver email or calendar reminders. It does not submit job applications, scrape job sites in the background, calculate fit scores inside the app, or infer the probability of receiving an offer.
+The wizard moves through **File → Review → Updates → Cleanup → Import**. Validation totals remain visible while the paginated record preview starts collapsed. The user can inspect rows, choose whether to skip existing records or refresh research, and then confirm the destination and import. Progress stays close to the active import controls.
 
-The external research guide helps users prepare a compatible dataset. File validation establishes structural compatibility; the user still needs to assess the quality of the research and scores.
+Existing research refreshes preserve existing personal tracking fields. Explicit workbook deletion instructions are separate from optional cleanup of current unavailable, declined or over-senior roles. The app shows a deletion plan and requires additional confirmation before deletion. An absent workbook row is not a deletion instruction, and marking a role unavailable does not immediately delete it.
 
-## Early validation
+Imports use saved checkpoints and bounded processing groups. Interrupted work can resume from confirmed progress; some transient failures trigger smaller groups and checked retries. Earlier confirmed groups remain saved when an import is paused or cancelled. These controls reduce repeat work but do not promise that network or database timeouts can never occur.
 
-Initial checks on the published app covered sign-in and session refresh, separate account workspaces, a fictional three-role import with expected scores, and backup download/upload/restore behavior. These are functional checks, not a security certification or a measure of job-search outcomes.
+### Let the user control email updates
 
-The next feedback round should examine time to first useful import, confusing search or score behavior, import/restore failures, and whether people return to update their applications. These are proposed measures; no usage or outcome metrics are claimed here.
+Only messages delivered to the user's private forwarding address enter the email workflow. The app offers company/role suggestions for review and requires the user to check a selected application before confirming **Rejected**.
+
+Optional automatic updates require verified forwarding, a configured trusted sender, sender authentication, a fresh explicit rejection, one unambiguous match, an eligible Applied or Interviewing record, and current-state checks. Manually forwarded messages require review. Uncertain messages remain reviewable, and irrelevant messages can be ignored or dismissed. See [Email updates](email-updates.md).
+
+### Separate export, backup and deletion
+
+Application export is context for future research, not an import workbook or a restorable backup. It includes all current applications regardless of list filters, but not historical status transitions. Users decide whether to share those personal notes and details with an external assistant.
+
+Backups preserve roles, applications and recorded status history. Uploading a backup only saves a copy; restore is a separate reviewed operation. The Advanced delete-all action also requires review, typed confirmation and a successful safety copy. Account access, saved backups and automatic-backup preferences remain intact.
+
+## Scope and evidence
+
+The app does not submit job applications, scan a connected inbox, scrape job sites in the background, calculate fit scores inside the app, or deliver follow-up reminder emails. External AI research remains user directed. Structural workbook validation cannot prove that a job is still open or that its score is well supported.
+
+The [README](README.md) identifies the version and publication boundary for these documents. Local checks cover application logic and desktop/mobile flows with fictional data; they are not a security certification or evidence of job-search outcomes. The [roadmap](roadmap.md) describes proposed evaluation work without claiming usage or outcome metrics.

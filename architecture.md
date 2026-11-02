@@ -1,144 +1,158 @@
 # Next Chapter architecture
 
-Next Chapter uses a React and TypeScript interface hosted through Lovable, with Supabase Auth and PostgreSQL for private application data. The browser handles interaction, workbook preview, search and chart rendering. Database functions own transactional changes, imports, backups and restores.
+Next Chapter is a private job application tracker. Its React and TypeScript interface runs through Lovable, with Supabase Auth and PostgreSQL for accounts and workspace data. Workbook validation, search, sorting and chart rendering run in the browser. Transactional writes and recovery checks run in the database. Forwarded email is handled by a separate server-side queue and worker.
 
-This document describes the implemented application. It is a high-level overview, not a deployment bundle.
+This document describes the latest maintained implementation, including the prepared UI refinement. It is a high-level overview, not a deployment bundle. See the [README](README.md) for release status.
 
 ## System overview
 
 ```mermaid
 flowchart TB
-    User["User"] --> Hosting["Lovable<br/>Published application"]
-    Hosting --> UI
+    User["User"] --> UI["Next Chapter on Lovable<br/>React and TypeScript"]
 
     subgraph Browser["User's browser"]
-        UI["React and TypeScript UI<br/>TanStack Start and Router"]
-        Query["TanStack Query<br/>Workspace reads and refreshes"]
-        Worker["Web Worker and SheetJS<br/>Workbook validation and preview"]
+        Preview["Web Worker and SheetJS<br/>Workbook validation and preview"]
         Views["Local search and sorting<br/>Cards, SVG Sankey and tables"]
         Demo["Fictional demo<br/>In-memory state"]
-        UI --> Query
-        UI --> Worker
-        UI --> Views
-        UI --> Demo
     end
 
-    subgraph Backend["Supabase backend"]
-        Auth["Supabase Auth<br/>Email/password and Google sign-in"]
-        API["Authenticated data API<br/>Reads and owner-checked SQL functions"]
-        DB[("PostgreSQL<br/>Roles, applications, status events<br/>Backups and preferences")]
-        Cron["pg_cron<br/>Scheduled backup worker"]
-        API --> DB
-        Cron --> DB
-    end
+    UI --> Preview
+    UI --> Views
+    UI --> Demo
+    UI <-->|"Session"| Auth["Supabase Auth"]
+    UI <-->|"Account-scoped requests"| API["Data API and SQL functions"]
+    API --> DB[("PostgreSQL<br/>Workspace, backups, import receipts<br/>Private email state")]
 
-    UI <-->|"Session"| Auth
-    Query <-->|"Authenticated requests"| API
-    Worker -->|"Validated preview"| UI
+    AI["User's chosen AI assistant"] --> File["Excel workbook"]
+    User -->|"Chosen resume and priorities"| AI
+    UI -.->|"Prompt, skill and context export"| User
+    File --> Preview
 
-    subgraph Research["User-directed research outside the app"]
-        Guide["Prompt or skill<br/>from the import guide"]
-        AI["User's chosen AI assistant<br/>User-provided resume and priorities"]
-        File["Compatible Excel workbook"]
-        Guide --> AI --> File
-    end
-
-    UI -.->|"Copy or download"| Guide
-    File -->|"User selects file"| Worker
+    Mail["User-selected email forwarding"] --> Resend["Resend receiving"]
+    Resend -->|"Signed webhook"| Receiver["Server webhook route"]
+    Receiver -->|"Enqueue"| DB
+    Cron["pg_cron"] -->|"Backup schedule"| DB
+    Cron -->|"pg_net and Vault credential"| Worker["Server email worker"]
+    Worker -->|"Retrieve message"| Resend
+    Worker <-->|"Lease, match, review or update"| DB
+    UI <-->|"Authenticated settings and review"| EmailAPI["Server email API"]
+    EmailAPI --> DB
 ```
 
-The research assistant is an external step selected by the user. The application does not call an LLM to run search, calculate scores or process the resume.
+The external research assistant is selected by the user. Next Chapter does not call an LLM to search, generate scores, process a resume or classify email. Email matching uses deterministic rules and explicit review controls.
 
 ## Component responsibilities
 
-| Component | Responsibility |
-| --- | --- |
-| Application shell | Landing page, demo and account views; theme and navigation. |
-| Authentication | Supabase email/password sessions and Google sign-in through the Lovable OAuth integration. |
-| Workspace client | Load account-owned data, submit changes, refresh state and clear cached data when the account changes. |
-| Workbook worker | Inspect the XLSX container, recognize supported schemas, validate values and return normalized preview data. |
-| Import controller | Create a safety backup, submit batches and report confirmed progress or uncertain outcomes. |
-| Search and list | Parse supported queries, filter and sort the loaded workspace, then reveal cards in groups of 50. |
-| Progress model | Build chart paths and exact-count tables from recorded status observations. |
-| Database functions | Coordinate saves, imports, backup operations, restore checks and scheduled copies. |
-| Demo adapter | Keep fictional interactive data in browser memory, separate from the private workspace. |
+| Component           | Responsibility                                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Application shell   | Landing page, demo, account views, theme and navigation.                                                                            |
+| Authentication      | Email/password and Google sign-in, session handling and password recovery.                                                          |
+| Workspace client    | Verify account identity, load records, submit changes and clear account-specific state when the user changes.                       |
+| Workbook worker     | Inspect the XLSX container, recognize supported formats, validate values and return normalized preview rows.                        |
+| Import controller   | Guide the user through five steps, stage rows, obtain review confirmation, track durable progress and recover interrupted requests. |
+| Search and list     | Apply supported local query rules and sorting, then reveal matching cards in groups of 50.                                          |
+| Progress model      | Build paths from actual status changes and produce exact-count tables without inventing earlier stages.                             |
+| Help and feedback   | Expand guidance from an info button, retain essential action warnings, and show progress and success close to the affected control. |
+| SQL functions       | Coordinate saves, bulk statuses, imports, cleanup, backups, restores and account boundaries.                                        |
+| Email server routes | Verify webhook signatures, authenticate user actions, process queued messages and keep provider credentials server-side.            |
+| Demo adapter        | Keep fictional interactive records in browser memory, separate from private accounts.                                               |
+
+The interface uses React, TypeScript, Tailwind CSS, Radix UI and Lucide icons. TanStack Start, Router and Query provide the application framework and data coordination; Vite builds the application.
 
 ## Data model
 
-| Table | Purpose |
-| --- | --- |
-| `job_roles` | Researched company/role facts, posting availability, source identity and research details, including imported scores. |
-| `applications` | The user's status, personal notes, applied date and follow-up date for a role. |
-| `application_status_events` | Initial observations, baseline observations and subsequent status changes. |
-| `application_backups` | Account-owned snapshots of roles, applications and recorded status history. |
-| `application_backup_settings` | Automatic backup preference, schedule and retention settings. |
+| Data                          | Purpose                                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `job_roles`                   | Company and role facts, posting availability, stable source identity and imported research, including scores.           |
+| `applications`                | The user's status, notes, applied date and follow-up date for a role.                                                   |
+| `application_status_events`   | Initial or baseline observations and recorded status changes.                                                           |
+| `application_backups`         | Account-owned snapshots of roles, applications and status history.                                                      |
+| `application_backup_settings` | Before-change protection, schedules and retention preferences.                                                          |
+| Private import tables         | Run identity, staged rows, confirmed offsets, counters and the reviewed deletion plan.                                  |
+| Private workspace revisions   | Detect changes that invalidate an import review or interrupt a running import.                                          |
+| Private email tables          | Forwarding connections, queued messages, review evidence, processing receipts, worker health and application revisions. |
 
-A user-owned role has at most one associated application. Owner relationships, row-level security and owner checks inside database functions enforce account boundaries. Deleting a role removes its associated application and status events. Restoring a snapshot returns those records to their saved state; automatic backup preferences remain separate.
+A user-owned role has at most one associated application. Row-level security and owner checks in database functions enforce account boundaries. Private import and email tables are not directly exposed to ordinary clients. Deleting a role removes its application and recorded status history; saved backups remain separate.
 
-## Main data flows
+## Core data flows
 
-### Sign in and load a workspace
+### Authenticate and load
 
-The browser establishes a Supabase session, verifies the signed-in user and loads that user's records. Private requests retain the expected account identity; switching accounts clears cached query data and interrupts operations associated with the old account.
+The client establishes a Supabase session, verifies the signed-in user and reads that account's workspace. Private requests retain the expected owner identity. Account changes clear cached data and interrupt operations associated with the prior account.
 
-### Save an application
+Password recovery uses a Supabase recovery session and a dedicated new-password form. The client verifies that session before changing the password. Recovery redirects and provider password policies remain part of the backend configuration.
 
-The interface validates the fields and calls an authenticated save function. Role and application changes are saved together. Status tracking records a real change when the application stage changes. Configured before-change backup protection runs within the write transaction.
+### Edit and change status
 
-### Preview and import a workbook
+An ordinary save writes role details and personal tracking fields together under a per-account transaction lock. Unchanged values avoid unnecessary writes, timestamps, history and repeat safety copies. Editing only notes, dates or status does not rewrite the research row.
 
-1. The user selects an `.xlsx` file.
-2. A browser worker validates and normalizes its contents. Preview does not upload the original workbook.
-3. The user reviews the rows, import mode and destination account.
-4. Confirmation creates a pre-import safety copy and starts sequential batches of at most 100 rows.
-5. Database functions validate and persist each batch under the signed-in owner.
+The card's status label opens a quick status action. Multi-selection supports bounded bulk updates. Choosing **Not interested in the company** asks whether to affect the selected role or all current roles matching that company. The interface preserves filters and scroll context, shows an in-card progress line and uses temporary local confirmation styling.
 
-Stable source identities allow reimports to find existing records. The default skips them. Research refresh accepts eligible same-date or newer snapshots while preserving personal application statuses, notes and dates.
+Ordinary form edits retain last-write-wins semantics. Bulk work commits in groups, so partial progress can remain after a later failure. Email approvals and automatic updates add version checks to avoid applying a stale decision.
 
-Each batch is transactional. The complete workbook is not one transaction: a later failure leaves earlier confirmed batches saved. An uncertain response is reported as uncertain because the server may already have committed it.
+### Validate, review and import
 
-### Search, sort and render
+1. **File:** the user selects an Excel workbook. Parsing and initial validation stay in a browser worker.
+2. **Review:** aggregate results are visible; the paginated record preview expands on demand.
+3. **Updates:** the user chooses to skip existing records or refresh eligible research.
+4. **Cleanup:** the user can keep existing declined/unavailable roles or include selected status categories in a deletion review.
+5. **Import:** the user confirms the destination and starts staging. The server produces the deletion plan, requests a separate confirmation when needed, saves a safety copy and processes small groups.
 
-Search uses local rules for terms, fields, score comparisons and dates. All conditions must match. Scores are read from imported research and missing scores remain unavailable.
+Run IDs, normalized-content fingerprints, confirmed offsets and server-side receipts support resuming without replaying acknowledged work. Staging and processing start with 25 rows and adapt within bounded limits. Slow or timed-out batches become smaller; uncertain responses trigger a server checkpoint read before the next request. Repeated failures pause the run with confirmed progress intact.
 
-The current tracker reads a bounded workspace of up to 5,000 applications. It filters and sorts that dataset before progressively revealing cards. Scrolling reveals more already-loaded results; it is not server-side cursor pagination.
+The server binds deletion confirmation to the reviewed workspace revision. A changed plan requires a fresh review. The safety copy must succeed before any import changes, and another workspace write can interrupt the run rather than silently applying an outdated plan.
 
-### Show progress
+Each processing request is transactional. The whole workbook is not one transaction: cancellation or a later failure does not undo earlier committed groups. Resume uses the existing run and safety copy. A new run is a separate import.
 
-An account-scoped database function provides a lean application/history snapshot. The browser turns recorded observations into an SVG Sankey and supporting tables.
+Stable source IDs match existing imported roles. Research refresh accepts eligible same-date or newer snapshots and preserves existing personal status, notes and application dates. Older research for a retained role blocks refresh confirmation; the user must review the workbook or choose Skip existing records. Missing rows alone are not deletion instructions. See the [import workflow](import-and-ai-workflow.md) for explicit deletion and optional status cleanup.
 
-Initial or imported statuses are starting observations. The chart does not reconstruct earlier stages. Ambiguous histories are marked incomplete, and long paths can fall back to a current-status view. Deleted applications do not remain in this current-workspace view.
+### Read, search and chart
 
-### Back up and restore
+Workspace reads use bounded pages that shrink after qualifying failures. The current client supports up to 5,000 applications. Filtering and sorting apply to the complete fetched workspace before cards are progressively revealed. Infinite scrolling is progressive rendering, not a server-side cursor search.
 
-Manual and automatic copies store roles, applications and status history. A downloaded JSON file can be uploaded back to the same account as a saved backup; upload alone does not replace the workspace.
+Search supports a defined grammar for text, fields, dates and score comparisons. Scores come from imported research; a missing score remains unknown. A superscript **NEW** marks applications created within the previous seven days, independently of research or edit dates.
 
-Restore preview returns record counts and a workspace-state check. A confirmed restore verifies that state, saves a safety copy and replaces the workspace in a transaction. Per-account locking coordinates conflicting writes. The UI distinguishes a confirmed result from a request whose completion could not be confirmed.
+The chart reads a lean application/history snapshot. Unchanged applications connect directly to **Current status**, even when other records have histories. Only genuine status changes add historical steps; repeated writes of the same status do not create steps. The final status appears once. Ambiguous history remains explicitly incomplete, and long paths can fall back to a current-status view.
 
-### Run scheduled backups
+### Export, back up and clear a workspace
 
-`pg_cron` invokes the database backup worker periodically. It checks each account's stored preference and due time, creates eligible snapshots and applies automatic-copy retention. This happens independently of an open browser. Registration and recent completion are reported separately in the settings interface.
+**Export applications** downloads all current applications, regardless of list filters, as JSON context for a future research prompt. It includes personal notes, dates, source identities and research, but excludes status history. It is neither an import workbook nor a restorable backup. Records without a compatible workbook source identity are marked reference-only.
 
-## Data handling and boundaries
+Manual and automatic backups include roles, applications and status history. A downloaded backup JSON can be uploaded as a saved copy for the same account. Upload alone does not replace the workspace. Validation happens before taking the workspace lock where possible, and a stable request identity supports repeat submissions.
 
-- The public repository contains documentation. The live application and private workspace records are separate.
-- Browser preview keeps workbook parsing local; confirmed import sends normalized records to the backend.
-- Authentication plus database authorization protects private records. Hiding a field in the UI is not an access-control mechanism.
-- Demo data remains in browser memory and does not write to the private database.
-- Backup JSON includes personal tracking data. It is a portable snapshot, not an anonymized export.
-- Structural workbook validation cannot establish that a listing is current or that a score is well justified.
-- Search and scoring display have no runtime dependency on Python, MLflow or Databricks.
+Restore preview compares record counts and checks workspace state. Confirmed restore saves a safety copy and replaces workspace records transactionally. The advanced **Delete all applications** action similarly requires a reviewed workspace, typed confirmation and a successful safety copy. Account details, saved backups and automatic backup preferences remain.
+
+Scheduled backups use `pg_cron` independently of an open browser. Their settings distinguish schedule registration from recent execution.
+
+### Process forwarded email
+
+A signed Resend webhook identifies the private receiving address and queues the provider's message ID. A scheduled worker claims a small number of messages, retrieves content from Resend, identifies possible rejections and matches candidate applications. It stores bounded text excerpts and review evidence rather than displaying active email HTML.
+
+The default is human review. Automatic rejection additionally requires verified forwarding, an exact trusted sender, provider-verified authentication, a fresh explicit rejection, one qualifying match and unchanged role/application state. Manual forwards remain review-only. Leases, duplicate receipts and retry backoff support recovery. See [Email updates](email-updates.md) for the complete user-facing flow and limits.
+
+## Reliability and boundaries
+
+- Per-account locking coordinates writes, imports, backups, restores and deletion. Bounded lock waits avoid waiting indefinitely on a busy workspace.
+- SQL statement budgets, smaller batches, no-op saves and durable checkpoints work together. Increasing a timeout alone is not the recovery strategy, and no system can guarantee that requests never time out.
+- Known database rollbacks and unknown network outcomes are distinguished. The interface does not report an uncertain write as confirmed success.
+- Confirmed import sends normalized records to the backend; selecting a workbook for preview does not upload the original file.
+- The forwarding integration processes messages addressed to a user's private address. It does not connect to or read the entire mailbox.
+- Provider and worker credentials stay on the server. User review requests require an authenticated account; worker operations use a separate privileged path.
+- Demo data does not write to the private database. Export and backup files can contain private tracking information.
+- This public repository contains documentation only. It contains no application credentials, deployment bundle, private workspace data or production source code.
 
 ## Current limits and tradeoffs
 
-| Area | Current behavior |
-| --- | --- |
-| Workbook input | Recognized template and supported legacy Superset formats; up to 10 MiB on disk, 64 MiB expanded and 5,000 rows. |
-| Formula handling | Template formulas are rejected. Supported legacy research preserves cached results without recalculating them. |
-| List scale | Bounded workspace read with progressive rendering, rather than a streaming backend query. |
-| Concurrent editing | Saves use last-write-wins behavior; there is no collaborative merge interface. |
-| Backups | Up to 50 snapshots per account and 32 MiB per saved snapshot; restore needs capacity for a safety copy. |
-| Backup upload | JSON upload supports up to 64 MiB and remains subject to snapshot validation and saved-size limits. |
-| Recovery | Uploading and restoring are distinct operations; failed or uncertain requests require checking the saved state. |
+| Area                | Current behavior                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workbook input      | Supported template and legacy Superset formats; 10 MiB on disk, 64 MiB expanded, 5,000 rows and 32 MiB of staged normalized data.                                   |
+| Resulting workspace | Must remain within supported role and safety-snapshot capacity after planned cleanup and import.                                                                    |
+| Formula handling    | Standard template formulas are rejected; supported legacy research can preserve cached results without recalculation.                                               |
+| Imports             | One unfinished run per account; processing is driven by the client and can resume from saved progress.                                                              |
+| Backups             | Up to 50 snapshots per account and 32 MiB per saved snapshot; protected operations need safety-copy capacity.                                                       |
+| Backup upload       | JSON files up to 64 MiB, subject to validation and saved-snapshot limits.                                                                                           |
+| Email intake        | Up to 100 accepted messages per connection in a rolling day; bounded processing per worker run.                                                                     |
+| Email evidence      | Scheduled cleanup removes stored evidence after 30 days and deduplication receipts after 90 days; users can remove evidence sooner. Provider retention is separate. |
+| Model integration   | No runtime dependency on Python, MLflow, Databricks or an LLM provider.                                                                                             |
 
-See the [roadmap](roadmap.md) for proposed improvements and the [import workflow](import-and-ai-workflow.md) for the external research contract.
+See the [roadmap](roadmap.md) for proposed validation and evaluation work.

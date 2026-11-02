@@ -1,96 +1,111 @@
 # Next Chapter
 
-### Track your job search. Decide what to apply to next.
+### Track your applications. Keep your next step clear.
 
-Next Chapter is a personal job-search workspace that brings researched roles, resume fit, personal priorities and application progress into one place. Import a workbook, compare opportunities, record your next steps and follow your progress as it happens.
+Next Chapter is a private **job application tracker** that keeps researched roles, resume-fit and priority scores, application decisions, notes and follow-ups together. Bring in a research workbook, keep it current without overwriting personal tracking, and follow the status changes you actually record.
 
 **[Open Next Chapter](https://next-chapter-by-khiz.lovable.app/)** · **[Try the demo](https://next-chapter-by-khiz.lovable.app/?view=demo)** · **[Architecture](architecture.md)**
 
-Built by [Khiz](https://github.com/Built-by-Khiz).
+Built by [Khizer](https://built-by-khiz.lovable.app/) · [GitHub](https://github.com/Built-by-Khiz)
 
-This repository contains the public product and architecture documentation. Use the links above to explore the live application and demo.
+This repository contains public product and architecture documentation. Application source code, deployment secrets and private workspace data are maintained separately.
 
 ## Why I built it
 
-A job search creates several kinds of information: facts about a role, an assessment of how well it fits, and the applicant's own decisions and follow-ups. Those details often end up scattered across spreadsheets, job-board tabs, research conversations and notes.
+Researching opportunities and tracking applications create different kinds of information. A posting has company and role facts. A candidate has preferences, personal notes, decisions and follow-up dates. Those details often end up scattered across spreadsheets, browser tabs, email and research conversations.
 
-I built Next Chapter to keep that research useful after the first shortlist. The app preserves job information alongside a personal application record, so new research can update the role without overwriting the applicant's status, notes or dates.
+Next Chapter connects them while keeping their responsibilities separate. Research refreshes can update job information without resetting an application's status, notes or dates. Forwarded rejection emails can become a reviewed status update. Backups provide a way to return to an earlier workspace.
 
 ## What you can do
 
-| Capability | How it helps |
-| --- | --- |
-| Track applications | Keep companies, roles, links, locations, statuses, notes and follow-up dates together. |
-| Compare two separate scores | See imported **Resume fit /100** and **Priority /100** scores and sort by either. |
-| Search in familiar language | Combine text, field filters, dates and score comparisons, such as `resume fit above 80`. |
-| Import a research workbook | Review an Excel file in your browser before confirming the import into your account. |
-| Use your preferred AI tool | Copy the built-in research prompt or download the skill, generate a compatible workbook externally, then import it. |
-| Follow your progress | See recorded application journeys in a Sankey chart on the workspace home screen, with exact counts in tables. |
-| Recover an earlier workspace | Create backups, download or upload backup JSON, and preview a restore before confirming it. |
-| Choose automatic backups | Save before changes or use interval, daily or weekly schedules. |
-| Work through a long list | Browse compact cards, expand notes as needed and reveal another 50 matching roles as you scroll. |
-| Try it before signing in | Explore fictional applications in a browser-only demo. |
+| Capability                   | How it helps                                                                                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Track applications           | Keep company, role, posting link, location, status, notes and dates together.                                                                                                            |
+| Update status quickly        | Click a card's status label, or select several cards for a bulk status change. Company-interest decisions ask whether to affect the selected roles or all current roles at that company. |
+| Compare scores               | Display and sort imported **Resume fit /100** and **Priority /100** scores independently.                                                                                                |
+| Search naturally             | Combine company, role, notes, dates and supported score comparisons such as `resume fit above 80`. The app uses a defined local grammar.                                                 |
+| Import with guidance         | Step through **File → Review → Updates → Cleanup → Import**, with aggregate counts, optional row details and progress beside the action.                                                 |
+| Refresh and clean up         | Add missing records, skip existing records or refresh their research. Review explicit workbook deletion requests and optional cleanup of selected personal-status categories.            |
+| Reuse current context        | Export all current applications as JSON for a future research workbook, retaining identity and personal decisions.                                                                       |
+| Use your own AI assistant    | Copy a reusable prompt or download a skill and template. The assistant runs outside Next Chapter using the context and preferences you choose to share.                                  |
+| Process forwarded emails     | Receive selected application emails at a private forwarding address, review suggested matches, or opt into automatic rejection updates under strict conditions.                          |
+| See real progress            | Follow recorded status changes in a home-screen Sankey. Applications with no actual change go directly to their current status.                                                          |
+| Recover or clear a workspace | Create manual or scheduled backups, download/upload backup JSON, preview a restore, or use protected deletion with a required safety copy.                                               |
+| Work through a long list     | Browse compact cards, expand notes and reveal another 50 matching roles as you scroll. A superscript **NEW** identifies applications added within seven days.                            |
 
-The interface supports light and dark themes. Private workspaces support Google sign-in and email/password accounts.
+Google sign-in, email/password accounts, password reset, light/dark themes and a fictional browser-only demo are also supported.
+
+## A quieter workspace
+
+The latest interface keeps **Add application** and **Import workbook** visible. **Email updates**, **Export applications** and **Backups** sit in the `…` menu.
+
+Info icons beside headings expand instructions below the heading when clicked. They do not rely on hovering. Relevant setup instructions, errors and confirmation requirements remain visible while the user performs the action. Card edits retain the active search, filters, sort and list position where possible; a thin progress bar and brief confirmation highlight keep feedback close to the changed card.
+
+On the import page, file selection is the default. A headline button opens **Build a workbook with your own AI assistant** as a separate view; **File Import** returns to the wizard. The aggregate preview remains visible while the paginated record list starts collapsed.
 
 ## One example journey
 
-1. Use your chosen AI assistant to research roles against your resume and agreed priorities.
-2. Import the resulting workbook and review its rows before saving.
-3. Sort by priority, then narrow the list with a query such as `resume fit above 80`.
-4. Apply to a role and update its status from **Saved** to **Applied**.
-5. Record later changes and follow the journey on the home-screen chart.
-
-The scores come from the imported research. Resume fit measures alignment with the role; priority reflects the user's own preferences. Their meaning depends on the evidence and rubric used to create them.
+1. Give your preferred AI assistant the in-app prompt, the resume context you choose, and your confirmed preferences.
+2. Import its workbook through the wizard. Review any proposed deletions separately before they can run.
+3. Sort by priority, narrow the list with a query such as `resume fit above 80`, and record applications through the status labels.
+4. Forward selected application emails. Review a suggested company-and-role match before confirming a rejection, or enable the narrowly scoped automatic mode after setup.
+5. Export current application context when preparing the next research refresh. Preserve stable Source IDs so reimports can recognize existing records.
+6. Follow actual status changes on the chart and use a backup if you need to restore an earlier state.
 
 ## Architecture at a glance
 
 ```mermaid
 flowchart LR
-    User["User"] --> App["Next Chapter on Lovable<br/>React and TypeScript"]
-    App --> Auth["Supabase Auth"]
-    App --> Data["Supabase PostgreSQL<br/>Account-owned records and backups"]
+    User["User"] --> UI["Next Chapter on Lovable<br/>React and TypeScript"]
+    UI <--> Auth["Supabase Auth"]
+    UI <--> DB[("PostgreSQL<br/>Private roles, applications,<br/>history, backups and import state")]
     User --> AI["User's chosen AI assistant"]
-    AI --> File["Excel workbook"]
-    File --> Preview["Browser validation and preview"]
-    Preview -->|"User confirms import"| App
+    AI --> Workbook["Excel workbook"]
+    Workbook --> Preview["Browser validation<br/>and import wizard"]
+    Preview --> UI
+    Mail["Selected forwarded emails"] --> Resend["Resend receiving"]
+    Resend --> Receiver["Signed webhook<br/>and background worker"]
+    Receiver <--> DB
+    DB --> Review["Suggested match or<br/>eligible automatic rejection"]
+    Review --> UI
 ```
 
-| Layer | Technology or approach |
-| --- | --- |
-| Interface | React, TypeScript, Tailwind CSS, Radix UI and Lucide icons |
-| Application framework | TanStack Start, TanStack Router, TanStack Query and Vite |
-| Hosting | Lovable |
-| Authentication and persistence | Supabase Auth and PostgreSQL |
-| Data access | Account-scoped reads, row-level security and owner-checked database functions |
-| Workbook processing | SheetJS in a browser Web Worker |
-| Search and progress | Local query parsing, a custom SVG Sankey and accessible tables |
-| Scheduled backups | PostgreSQL functions invoked by `pg_cron` |
+| Layer                          | Technology or approach                                                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Interface                      | React, TypeScript, Tailwind CSS, Radix UI and Lucide icons                                                             |
+| Framework                      | TanStack Start, TanStack Router, TanStack Query and Vite                                                               |
+| Hosting                        | Lovable                                                                                                                |
+| Authentication and persistence | Supabase Auth and PostgreSQL                                                                                           |
+| Data operations                | Account-scoped reads, row-level security and owner-checked database functions                                          |
+| Workbook processing            | SheetJS in a browser Web Worker; resumable staged imports                                                              |
+| Search and progress            | Local query parsing, custom SVG Sankey and exact-count tables                                                          |
+| Email updates                  | Resend receiving, authenticated server routes, deterministic classification and matching, queued background processing |
+| Scheduled work                 | PostgreSQL scheduling for backups and email-worker requests                                                            |
 
-See the [architecture document](architecture.md) for component responsibilities, data flows and boundaries.
+## Product decisions
 
-## Design choices that matter
-
-- **Job availability and application status are separate.** An open posting does not mean the user applied. Saved is the starting state for newly researched opportunities.
-- **Research and personal tracking have separate records and update rules.** A research refresh preserves existing application statuses, notes and dates.
-- **History reflects recorded activity.** Imported starting statuses do not invent earlier application stages.
-- **Unknown stays unknown.** A missing score is not a zero, and an unverified posting is not presented as confirmed open.
-- **Users control AI research.** The app supplies instructions and an import contract. The user chooses the assistant and what information to share with it.
-- **Import and restore are reviewed actions.** Preview, confirmation and safety copies are part of the workflow.
+- **Availability, personal status and scores answer different questions.** An open posting does not mean an application was submitted. Scores are research assessments, not hiring probabilities.
+- **Personal work survives a research refresh.** Existing application statuses, notes and dates are preserved. Imported research fields are replaced by the accepted snapshot, so known information should be carried forward deliberately.
+- **Cleanup is explicit.** A missing row is not a deletion request. Workbook annotations and user-selected status categories produce a deletion plan that needs separate confirmation.
+- **Email updates require evidence.** Manual forwards and uncertain matches need review. Automatic mode is limited to eligible Applied or Interviewing records with a trusted, authenticated sender, clear rejection and one strict match.
+- **History represents recorded changes.** Same-status writes do not create extra Sankey stages, and incomplete history is not filled with guessed transitions.
+- **Unknown facts remain unknown.** The external scoring prompt distinguishes observed inputs from explicitly labeled estimates and reports evidence coverage.
+- **Long operations are recoverable.** Imports use saved run state and acknowledged batches. Bounded work, retries and outcome checks reduce timeout problems without promising that failures can never occur.
 
 ## Project status
 
-Next Chapter is published and in early user testing. Initial live checks covered sign-in, separate account workspaces, importing a fictional dataset with scores, and a backup download/upload/restore round trip.
+Next Chapter is published and in active personal use. This documentation reflects the latest implemented application version, including the UI refresh prepared on November 1, 2026. That refresh passed local production-build and desktop/mobile checks; its publication has not yet been confirmed.
 
-Python validation tools and MLflow experiments are proposed next steps. They are documented in the [roadmap](roadmap.md) and are not part of the current application runtime.
+Forwarded-email receipt and manual rejection review have been exercised in use. The latest local checks also cover email processing, precise match suggestions, import interactions and status-history behavior. These checks do not claim universal email classification accuracy or a completed live automatic-update test.
+
+Python dataset validation, MLflow evaluation and optional Databricks experiments remain proposed follow-on work. They are not dependencies of the running application.
 
 ## Documentation
 
-| Document | What it covers |
-| --- | --- |
-| [Product brief](PRD.md) | Problem, intended users, user journeys and product decisions |
-| [Architecture](architecture.md) | System diagram, components, data model and core flows |
-| [Research and import workflow](import-and-ai-workflow.md) | External AI research, score meaning and workbook compatibility |
-| [Roadmap](roadmap.md) | Current capabilities and proposed validation/evaluation work |
-
-This is the public documentation repository for Next Chapter. The application runs on Lovable; its source code, deployment configuration and private workspace data are not included here.
+| Document                                                  | What it covers                                                                   |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [Product brief](PRD.md)                                   | Problem, users, journeys, interaction decisions and scope                        |
+| [Architecture](architecture.md)                           | Components, data model, import reliability, email processing and boundaries      |
+| [Research and import workflow](import-and-ai-workflow.md) | External AI, current score model, workbook contract, refresh and cleanup         |
+| [Forwarded email updates](email-updates.md)               | Forwarding setup, suggestions, review, automatic-update conditions and retention |
+| [Roadmap](roadmap.md)                                     | Implemented capabilities, validation priorities and proposed evaluation tools    |
